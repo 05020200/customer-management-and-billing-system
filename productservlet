@@ -1,0 +1,56 @@
+package com.mycompany.mm;
+
+
+import com.google.gson.Gson;
+import com.mycompany.mm.DBConnection;
+import java.io.IOException;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import javax.servlet.annotation.WebServlet;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+@WebServlet("/ProductServlet")
+public class ProductServlet extends HttpServlet {
+
+    protected void doGet(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        List<Map<String, Object>> products = new ArrayList<>();
+        try (Connection conn = DBConnection.getConnection()) {
+            ResultSet rs = conn.createStatement().executeQuery("SELECT * FROM products");
+            while (rs.next()) {
+                Map<String, Object> p = new HashMap<>();
+                p.put("id", rs.getString("product_id"));
+                p.put("name", rs.getString("name"));
+                p.put("price", rs.getDouble("price"));
+                p.put("quantity", rs.getInt("quantity"));
+                products.add(p);
+            }
+        } catch (Exception e) { e.printStackTrace(); }
+        response.setContentType("application/json");
+        response.getWriter().write(new Gson().toJson(products));
+    }
+
+    protected void doPost(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        String name = request.getParameter("name");
+        double price = Double.parseDouble(request.getParameter("price"));
+        int qty = Integer.parseInt(request.getParameter("quantity"));
+        String id = "PROD" + System.currentTimeMillis();
+
+        try (Connection conn = DBConnection.getConnection()) {
+            String sql = "INSERT INTO products (product_id, name, price, quantity) VALUES (?, ?, ?, ?)";
+            PreparedStatement ps = conn.prepareStatement(sql);
+            ps.setString(1, id);
+            ps.setString(2, name);
+            ps.setDouble(3, price);
+            ps.setInt(4, qty);
+            ps.executeUpdate();
+            response.setStatus(200);
+        } catch (Exception e) { e.printStackTrace(); response.setStatus(500); }
+    }
+}
