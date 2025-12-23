@@ -1,0 +1,26 @@
+package com.mycompany.mm;
+
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.SQLException;
+
+public class DBConnection {
+
+    // This path MUST be correct.
+// Ensure the slashes are forward slashes / even on Windows for Java strings
+private static final String DB_URL = "jdbc:sqlite:C:/Users/Public/sqlite_db/lib-1.db";
+
+    public static Connection getConnection() {
+        Connection conn = null;
+        try {
+            Class.forName("org.sqlite.JDBC");
+            // This will print to the log, confirming which DB is being used.
+            System.out.println("Attempting to connect to database at: " + DB_URL);
+            conn = DriverManager.getConnection(DB_URL);
+        } catch (ClassNotFoundException | SQLException e) {
+            System.err.println("DATABASE CONNECTION FAILED!");
+            e.printStackTrace();
+        }
+        return conn;
+    }
+}
