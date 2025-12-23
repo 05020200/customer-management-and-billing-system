@@ -1084,11 +1084,7 @@
     // Data Storage
     let customers = [];
 
-    let products = [
-      { id: 'PROD001', name: 'Digital Caliper Pro', price: 89.99, quantity: 45, createdAt: '2024-01-01' },
-      { id: 'PROD002', name: 'Precision Micrometer Set', price: 249.99, quantity: 23, createdAt: '2024-01-05' },
-      { id: 'PROD003', name: 'Laser Distance Meter', price: 179.99, quantity: 67, createdAt: '2024-01-10' }
-    ];
+    let products = [];
 
     let sales = [
       {
@@ -1203,22 +1199,42 @@ async function fetchCustomers() {
         console.error("Connection failed:", error);
     }
 }
+async function fetchProducts() {
+    try {
+        const response = await fetch('ProductServlet');
+        const data = await response.json();
+        const tbody = document.getElementById('products-table');
+        
+        tbody.innerHTML = data.map(p => `
+            <tr>
+                <td><strong>${p.id}</strong></td>
+                <td>${p.name}</td>
+                <td>$${p.price.toFixed(2)}</td>
+                <td>${p.quantity}</td>
+                <td><span class="badge ${p.quantity > 0 ? 'badge-success' : 'badge-danger'}">
+                    ${p.quantity > 0 ? 'In Stock' : 'Out of Stock'}</span></td>
+                <td><button class="btn btn-sm btn-secondary">Edit</button></td>
+            </tr>
+        `).join('');
+    } catch (error) { console.error("Error loading products:", error); }
+}
     // Product Functions
-    function addProduct(e) {
-      e.preventDefault();
-      const product = {
-        id: generateId('PROD'),
-        name: document.getElementById('prod-name').value,
-        price: parseFloat(document.getElementById('prod-price').value),
-        quantity: parseInt(document.getElementById('prod-qty').value),
-        createdAt: new Date().toISOString()
-      };
-      products.push(product);
-      document.getElementById('product-form').reset();
-      closeModal('product-modal');
-      showToast('Product added successfully!', 'success');
-      refreshData();
-    }
+   async function addProduct(e) {
+    e.preventDefault();
+    const formData = new URLSearchParams();
+    formData.append('name', document.getElementById('prod-name').value);
+    formData.append('price', document.getElementById('prod-price').value);
+    formData.append('quantity', document.getElementById('prod-qty').value);
+
+    try {
+        const response = await fetch('ProductServlet', { method: 'POST', body: formData });
+        if (response.ok) {
+            showToast('Product added!', 'success');
+            closeModal('product-modal');
+            fetchProducts(); // Refresh the table
+        }
+    } catch (error) { showToast('Error adding product', 'danger'); }
+}
 
     function updateQuantity(productId, delta) {
       const product = products.find(p => p.id === productId);
@@ -1506,6 +1522,7 @@ async function fetchCustomers() {
     // Refresh all data
     function refreshData() {
       fetchCustomers();  
+      fetchProducts();
       renderDashboard();
       renderCustomers();
       renderProducts();
