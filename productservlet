@@ -53,4 +53,24 @@ public class ProductServlet extends HttpServlet {
             response.setStatus(200);
         } catch (Exception e) { e.printStackTrace(); response.setStatus(500); }
     }
+    protected void doPut(HttpServletRequest request, HttpServletResponse response) throws IOException {
+    // Read the product ID, new price, and new quantity from the request body
+    String productId = request.getParameter("id");
+    double price = Double.parseDouble(request.getParameter("price"));
+    int qty = Integer.parseInt(request.getParameter("quantity"));
+
+    try (Connection conn = DBConnection.getConnection()) {
+        String sql = "UPDATE products SET price = ?, quantity = ? WHERE product_id = ?";
+        PreparedStatement ps = conn.prepareStatement(sql);
+        ps.setDouble(1, price);
+        ps.setInt(2, qty);
+        ps.setString(3, productId);
+        
+        ps.executeUpdate();
+        response.setStatus(200); // Success
+    } catch (Exception e) {
+        e.printStackTrace();
+        response.setStatus(500); // Error
+    }
+}
 }
