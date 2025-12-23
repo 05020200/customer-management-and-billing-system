@@ -1213,7 +1213,13 @@ async function fetchProducts() {
                 <td>${p.quantity}</td>
                 <td><span class="badge ${p.quantity > 0 ? 'badge-success' : 'badge-danger'}">
                     ${p.quantity > 0 ? 'In Stock' : 'Out of Stock'}</span></td>
-                <td><button class="btn btn-sm btn-secondary">Edit</button></td>
+             
+<td>
+    <button class="btn btn-sm btn-secondary" 
+            onclick="openEditModal('${p.id}', ${p.price}, ${p.quantity})">
+        Edit
+    </button>
+</td>
             </tr>
         `).join('');
     } catch (error) { console.error("Error loading products:", error); }
@@ -1518,7 +1524,40 @@ async function fetchProducts() {
         </tr>
       `).join('') || '<tr><td colspan="5" style="text-align: center; color: var(--text-muted);">No sales yet</td></tr>';
     }
+// 1. Function to open the modal and fill it with current data
+function openEditModal(id, price, qty) {
+    document.getElementById('edit-prod-id').value = id;
+    document.getElementById('edit-prod-price').value = price;
+    document.getElementById('edit-prod-qty').value = qty;
+    openModal('edit-product-modal');
+}
 
+// 2. Function to send the UPDATE request to Java
+async function saveProductEdit(e) {
+    e.preventDefault();
+    const id = document.getElementById('edit-prod-id').value;
+    const price = document.getElementById('edit-prod-price').value;
+    const qty = document.getElementById('edit-prod-qty').value;
+
+    const params = new URLSearchParams();
+    params.append('id', id);
+    params.append('price', price);
+    params.append('quantity', qty);
+
+    try {
+        const response = await fetch(`ProductServlet?${params.toString()}`, {
+            method: 'PUT' // Calls the doPut method in Java
+        });
+
+        if (response.ok) {
+            showToast('Product updated successfully!', 'success');
+            closeModal('edit-product-modal');
+            fetchProducts(); // Refresh the table
+        }
+    } catch (error) {
+        showToast('Error updating product', 'danger');
+    }
+}
     // Refresh all data
     function refreshData() {
       fetchCustomers();  
@@ -1534,5 +1573,25 @@ async function fetchProducts() {
     // Initialize
     document.addEventListener('DOMContentLoaded', refreshData);
   </script>
+  <div id="edit-product-modal" class="modal-overlay">
+    <div class="modal">
+        <div class="modal-header">
+            <h2 class="modal-title">Edit Product</h2>
+            <button class="modal-close" onclick="closeModal('edit-product-modal')">&times;</button>
+        </div>
+        <form id="edit-product-form" onsubmit="saveProductEdit(event)">
+            <input type="hidden" id="edit-prod-id">
+            <div class="form-group">
+                <label class="form-label">Price *</label>
+                <input type="number" class="form-input" id="edit-prod-price" step="0.01" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Quantity *</label>
+                <input type="number" class="form-input" id="edit-prod-qty" required>
+            </div>
+            <button type="submit" class="btn btn-primary" style="width: 100%;">Save Changes</button>
+        </form>
+    </div>
+</div>
 </body>
 </html>
