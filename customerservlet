@@ -1,0 +1,81 @@
+package com.mycompany.mm;
+
+import java.io.IOException;
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import javax.servlet.ServletException;
+import javax.servlet.annotation.WebServlet;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import com.google.gson.Gson; // Requires Gson dependency in pom.xml
+import java.sql.PreparedStatement;
+
+@WebServlet("/CustomerServlet")
+public class CustomerServlet extends HttpServlet {
+
+    // Handles the "fetchCustomers" JavaScript call (GET)
+    protected void doGet(HttpServletRequest request, HttpServletResponse response) throws IOException {
+     // Add this line at the beginning of your doGet method
+List<Map<String, String>> customers = new ArrayList<>();
+        try (Connection conn =DBConnection.getConnection()) {
+            ResultSet rs = conn.createStatement().executeQuery("SELECT * FROM customers");
+            while (rs.next()) {
+                Map<String, String> c = new HashMap<>();
+                c.put("id", rs.getString("customer_id"));
+                c.put("name", rs.getString("name"));
+                c.put("email", rs.getString("email"));
+                c.put("phone", rs.getString("phone"));
+                c.put("address", rs.getString("address"));
+                customers.add(c);
+            }
+        }  catch (Exception e) { 
+    // This will print the error message (e.g., "no such table: customers") 
+    // to the NetBeans Output window/Tomcat logs.
+    System.err.println("--- SERVLET DATABASE ERROR: " + e.getMessage()); 
+    e.printStackTrace(); 
+    
+    // This sends the error status to your JavaScript so it knows it failed
+    response.setStatus(500);
+}
+
+        response.setContentType("application/json");
+        // Convert the list to JSON so your JavaScript can read it
+        response.getWriter().write(new Gson().toJson(customers));
+    }
+
+    // Handles the "addCustomer" JavaScript call (POST)
+    protected void doPost(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        String name = request.getParameter("name");
+        String email = request.getParameter("email");
+        String phone = request.getParameter("phone");
+        String address = request.getParameter("address");
+        String id = "CUST" + System.currentTimeMillis(); // Simple unique ID
+
+        try (Connection conn = DBConnection.getConnection()) {
+            String sql = "INSERT INTO customers (customer_id, name, email, phone, address) VALUES (?, ?, ?, ?, ?)";
+            PreparedStatement ps = conn.prepareStatement(sql);
+            ps.setString(1, id);
+            ps.setString(2, name);
+            ps.setString(3, email);
+            ps.setString(4, phone);
+            ps.setString(5, address);
+            ps.executeUpdate();
+            
+            response.setStatus(200); // Success!
+        }
+         catch (SQLException e) {
+    System.err.println("!!! SQL ERROR: " + e.getMessage()); // This will show in red in NetBeans
+    e.printStackTrace();
+} catch (Exception e) {
+    System.err.println("!!! GENERAL ERROR: " + e.getMessage());
+    e.printStackTrace();
+}
+    }
+}
